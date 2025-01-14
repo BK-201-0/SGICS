@@ -41,7 +41,7 @@ class search_engine:
             instances.append(Graph(instance, docGraph=True, isLower='True'))
         ex = self.build_batch_data(instances)
         query_embedded = cal_query_features(self.model.network, ex)
-        client = Elasticsearch(hosts=['http://139.199.191.68:9200'])
+        client = Elasticsearch(hosts=[])
         for index in range(query_embedded.shape[0]):
             script_query = {
                 "script_score": {
