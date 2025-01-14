@@ -69,4 +69,3 @@ logging: True # Turn it off for Codalab
 no_cuda: False
 cuda_id: 3
 
-#nohup python main.py --config config/search_train_java.yml > out.txt 2>&1 &
