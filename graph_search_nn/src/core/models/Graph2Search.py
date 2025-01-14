@@ -43,7 +43,6 @@ class Graph2Search(nn.Module):
         self.linear_max = nn.Linear(self.graph_hidden_size, self.graph_hidden_size, bias=False)
         self.heads = config.get('heads', 4)
 
-        # 改成DCMHAttention
         self.heads = config.get('heads', 4)
         self.global_sequence_att = MultiHeadedAttention(self.heads, self.graph_hidden_size, config, config['word_dropout'])
         self.global_code_att = MultiHeadedAttention(self.heads, self.graph_hidden_size, config, config['word_dropout'])
@@ -87,58 +86,15 @@ class Graph2Search(nn.Module):
         code_sequence_embedded_mask = create_mask(ex['sequence_lens'], ex['max_code_lens'], self.device)
         doc_sequence_embedded_mask = create_mask(doc_graphs['node_num'], doc_graphs['max_node_num_batch'], self.device)
 
-        # 改成DCMHAttention
         if self.code_info_type in ['all', 'global']:
             weighted_code = self.global_code_att(code_sequence_embedded, code_sequence_embedded, code_sequence_embedded,
                                                  code_sequence_embedded_mask.unsqueeze(1))
-            # weighted_code = self.global_code_att(code_sequence_embedded, code_sequence_embedded,
-            #                                      code_sequence_embedded_mask.unsqueeze(1))
             global_code_state = torch.div(torch.sum(weighted_code, dim=1), ex['sequence_lens'].unsqueeze(1).float())
         if self.des_info_type in ['all', 'global']:
             weighted_doc = self.global_sequence_att(doc_words_embedded, doc_words_embedded, doc_words_embedded,
                                                     doc_sequence_embedded_mask.unsqueeze(1))
-            # weighted_doc = self.global_sequence_att(doc_words_embedded, doc_words_embedded,
-            #                                         doc_sequence_embedded_mask.unsqueeze(1))
             global_doc_state = torch.div(torch.sum(weighted_doc, dim=1), ex['target_lens'].unsqueeze(1).float())
 
-        # print(f"Shape of global_code_state: {global_code_state.shape}")
-        # print(f"Shape of global_doc_state: {global_doc_state.shape}")
-
-        # biggnn+mha
-        # if self.code_info_type in ['all']:
-        #     src_state = torch.cat([local_code_state, global_code_state], dim=-1)
-        # elif self.code_info_type in ['global']:
-        #     src_state = global_code_state
-        # else:
-        #     src_state = local_code_state
-        #
-        # if self.des_info_type in ['all']:
-        #     tgt_state = torch.cat([local_doc_state, global_doc_state], dim=-1)
-        # elif self.des_info_type in ['global']:
-        #     tgt_state = global_doc_state
-        # else:
-        #     tgt_state = local_doc_state
-
-        # biggnn+mha+mha
-        # if self.code_info_type in ['all']:
-        #     src_state = torch.cat([local_code_state, global_code_state], dim=-1)
-        #     # src_state + global_doc_state
-        #     src_state = torch.cat([src_state, global_doc_state], dim=-1)
-        # elif self.code_info_type in ['global']:
-        #     src_state = global_code_state
-        # else:
-        #     src_state = local_code_state
-        #
-        # if self.des_info_type in ['all']:
-        #     tgt_state = torch.cat([local_doc_state, global_doc_state], dim=-1)
-        #     # tgt_state + global_doc_state
-        #     tgt_state = torch.cat([tgt_state, global_code_state], dim=-1)
-        # elif self.des_info_type in ['global']:
-        #     tgt_state = global_doc_state
-        # else:
-        #     tgt_state = local_doc_state
-
-        # biggnn+biggnn+mha
         if self.code_info_type in ['all']:
             src_state = torch.cat([local_code_state, local_doc_state], dim=-1)
             # src_state + local_doc_state
@@ -157,22 +113,16 @@ class Graph2Search(nn.Module):
         else:
             tgt_state = local_doc_state
 
-        # global_att(src)
         src_state = self.global_att(src_state, src_state, src_state)
         tgt_state = self.global_att(tgt_state, tgt_state, tgt_state)
 
-        # print(f"Shape of src_state: {src_state.shape}")
-        # print(f"Shape of tgt_state: {tgt_state.shape}")
 
         if self.code_info_type in ['all'] and self.des_info_type not in ['all']:
             tgt_state = self.linear_proj(tgt_state)
 
         if self.des_info_type in ['all'] and self.code_info_type not in ['all']:
             src_state = self.linear_proj(src_state)
-
-        # print(f"Shape of src_state1: {src_state.shape}")
-        # print(f"Shape of tgt_state1: {tgt_state.shape}")
-
+            
         r = Output()
         nll_loss, cosine_similarities = self.softmax_loss(src_state, tgt_state, criterion, batch_size)
         r.loss = torch.sum(nll_loss)
