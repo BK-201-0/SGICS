@@ -34,38 +34,6 @@ def test(config, gs=False):
     model_handle = ModelHandlerExtend(config)
     model_handle.test()
 
-def build_code_vec_database(config):
-    print_config(config)
-    set_random_seed(config['random_seed'])
-    if config['out_dir'] is not None:
-        config['pretrained'] = config['out_dir']
-        config['out_dir'] = None
-    client = Elasticsearch(hosts=['http://139.199.191.68:9200'])
-    client.indices.delete(index=config['index_name'], ignore=[404])
-    client = create_index(client, config['index_file'])
-    model_handle = ModelHandlerExtend(config)
-    for file in os.listdir(config['vector_db']):
-        if file.endswith('.gz'):
-            try:
-                print(file)
-                file_path = os.path.join(config['vector_db'], file)
-                model_handle.prepare_vector_db(file_path)
-                model_handle.build_code_vec_database(client)
-                client.indices.refresh(index=config['index_name'])
-            except:
-                continue
-    print('build index successfully')
-
-def create_search_engine(config):
-    set_random_seed(config['random_seed'])
-    if config['out_dir'] is not None:
-        config['pretrained'] = config['out_dir']
-        config['out_dir'] = None
-    model_handle = ModelHandlerExtend(config)
-    se = search_engine(model_handle=model_handle, config=config)
-    queries = pd.read_csv(config['query_file']).values.tolist()
-    se.search(queries)
-
 def create_index(client, index_file):
     with open(index_file) as index_file:
         source = index_file.read().strip()
@@ -110,20 +78,12 @@ def load_saved_models(dir):
         print(records[record])
         print('***********************************')
 
-def save(config, dir, ep):
-    set_random_seed(config['random_seed'])
-    if config['out_dir'] is not None:
-        config['pretrained'] = config['out_dir']
-        config['out_dir'] = None
-    model_handle = ModelHandlerExtend(config)
-    model_handle.model.save(dir, ep)
-
 def search_engine_query(config):
     set_random_seed(config['random_seed'])
     if config['out_dir'] is not None:
         config['pretrained'] = config['out_dir']
         config['out_dir'] = None
-    client = Elasticsearch(hosts=['http://139.199.191.68:9200'])
+    client = Elasticsearch(hosts=[])
     client.indices.delete(index=config['index_name'], ignore=[404])
     client = create_index(client, config['index_file'])
     queries = pd.read_csv(config['query_file']).values.tolist()
@@ -147,14 +107,9 @@ def search_engine_query(config):
     print('build index successfully')
     se.search(queries)
 
-
 if __name__ == '__main__':
     cfg = get_args()
     config = get_config(cfg['config'])
     main(config)
     test(config)
-    # build_code_vec_database(config)
-    # create_search_engine(config)
-    # dir = '/data/hugang/JjyCode/GraphSearchNet/CodeSearchNet/models/att(bi+bi+mh+u)'
-    # save(config, dir, 26)
     search_engine_query(config)
