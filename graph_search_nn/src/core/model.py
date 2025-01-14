@@ -263,35 +263,6 @@ def cal_query_features(network, ex):
     tgt_state = torch.cat([tgt_state, local_doc_state], dim=-1)
     tgt_state = network.global_att(tgt_state, tgt_state, tgt_state)
 
-    # batch_size = ex['batch_size']
-    # code_graphs = ex['code_graphs']
-    # if network.message_function == 'edge_mm':
-    #     code_edge_vec = code_graphs['edge_features']
-    # else:
-    #     code_edge_vec = network.edge_embed(code_graphs['edge_features'])
-    # code_node_mask = create_mask(code_graphs['node_num'], code_graphs['max_node_num_batch'], network.device)
-    # node_embedded = network.word_embed(code_graphs['node_index'])
-    # node_embedded = dropout(node_embedded, network.word_dropout, shared_axes=[-2], training=network.training)
-    # code_node_embedding = network.code_graph_encoder(node_embedded, code_edge_vec,
-    #                                                  (code_graphs['node2edge'], code_graphs['edge2node']))
-    # code_sequence_embedded = network.word_embed(ex['sequences'])
-    # code_sequence_embedded_mask = create_mask(ex['sequence_lens'], ex['max_code_lens'], network.device)
-    # weighted_code = network.global_code_att(code_sequence_embedded, code_sequence_embedded, code_sequence_embedded,
-    #                                         code_sequence_embedded_mask.unsqueeze(1))
-    # global_code_state = torch.div(torch.sum(weighted_code, dim=1), ex['sequence_lens'].unsqueeze(1).float())
-    # local_code_state = network.graph_maxpool(code_node_embedding, code_node_mask).squeeze()
-    #
-    # # biggnn+biggnn+mha
-    # if self.des_info_type in ['all']:
-    #     tgt_state = torch.cat([local_doc_state, local_code_state], dim=-1)
-    #     # tgt_state + local_code_state
-    #     tgt_state = torch.cat([tgt_state, global_doc_state], dim=-1)
-    # elif self.des_info_type in ['global']:
-    #     tgt_state = global_doc_state
-    # else:
-    #     tgt_state = local_doc_state
-    #
-    # tgt_state = self.network.global_att(tgt_state, tgt_state, tgt_state)
     return tgt_state.detach().cpu().numpy()
 
 
