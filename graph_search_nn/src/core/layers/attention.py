@@ -4,28 +4,6 @@ from ..utils.constants import INF
 import math, copy
 import torch.nn.functional as F
 
-class PositionalEncoder(nn.Module):
-
-    def __init__(self, d_model, max_seq_len=200):
-        super().__init__()
-        self.d_model = d_model
-        # 创建一个常量 PE 矩阵
-        pe = torch.zeros(max_seq_len, d_model)
-        for pos in range(max_seq_len):
-            for i in range(0, d_model, 2):
-                pe[pos, i] = math.sin(pos / (10000**((2 * i) / d_model)))
-                pe[pos, i + 1] = math.cos(pos / (10000**((2 * (i + 1)) / d_model)))
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        # 使得单词嵌入表示相对大一些
-        x = x * math.sqrt(self.d_model)
-        # 增加位置常量到单词嵌入表示中
-        seq_len = x.size(1)
-        x = x + self.pe[:, :seq_len]
-        return x
-
 class MultiHeadedAttention(nn.Module):
 
     def __init__(self, h, d_model, config, dropout=0.1):
@@ -52,23 +30,9 @@ class MultiHeadedAttention(nn.Module):
 
         residual = key
 
-        # print(f"Shape of query: {query.shape}")
-        # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
             [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
-
-        # print(f"Shape of query: {query.shape}")
-
-        # ---------------------
-        # 2) Apply attention on all the projected vectors in batch.
-        # x, self.attn = self.attention(query, key, value, mask=mask,
-        #                               dropout=self.dropout)
-        #
-        # # 3) "Concat" using a view and apply a final linear.
-        # x = x.transpose(1, 2).contiguous() \
-        #     .view(nbatches, -1, self.h * self.d_k)
-        # return self.linears[-1](x)
 
         U = torch.randn(self.d_model, nbatches * query.size(3)).view(nbatches, self.h, -1, self.d_k)
         U = U.to(self.config['device'])
