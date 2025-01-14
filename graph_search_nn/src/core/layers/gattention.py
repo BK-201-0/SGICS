@@ -30,19 +30,9 @@ class GMultiHeadedAttention(nn.Module):
 
         residual = key
 
-        # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
             [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
              for l, x in zip(self.linears, (query, key, value))]
-
-        # 2) Apply attention on all the projected vectors in batch.
-        # x, self.attn = self.attention(query, key, value, mask=mask,
-        #                               dropout=self.dropout)
-        #
-        # # 3) "Concat" using a view and apply a final linear.
-        # x = x.transpose(1, 2).contiguous() \
-        #     .view(nbatches, -1)
-        # return self.linears[-1](x)
 
         U = torch.randn(self.d_model, nbatches * query.size(3)).view(nbatches, self.h, -1, self.d_k)
         U = U.to(self.config['device'])
