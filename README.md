@@ -1,4 +1,4 @@
-# IGSN2
+# SGICS
 A Local-to-Global Attention Transformer and interaction for Code Search.
 ## Get started
 ### Prerequisites
